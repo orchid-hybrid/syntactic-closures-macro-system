@@ -13,7 +13,17 @@
 
 (define builtins `((cons . ,cons)
                    (car . ,car)
-                   (cdr . ,cdr)))
+                   (cdr . ,cdr)
+                   
+                   (cadr . ,cadr)
+                   (cddr . ,cddr)
+                   (caar . ,caar)
+                   (cdar . ,cdar)
+                   
+                   (caadr . ,caadr)
+                   (caddr . ,caddr)
+                   (cdaar . ,cdaar)
+                   (cddar . ,cddar)))
 
 (define (interpret env e)
   (match-language apple e

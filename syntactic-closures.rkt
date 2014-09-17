@@ -1,5 +1,22 @@
 #lang racket
 
+(provide compile***
+         
+         extend-syntactic-environment
+         extend-syntactic-environment*
+         add-identifier
+         add-identifier-list
+         filter-syntactic-env
+         
+         syntactic-closure?
+         make-syntactic-closure
+         make-syntactic-closure-list
+         compile-syntactic-closure
+         
+         null-syntactic-environment
+         core-syntactic-environment
+         scheme-syntactic-environment)
+
 ;;  Alan Bawden and Jonathan Rees - Syntactic closures.
 
 ;; A /name/ is any token used to name something. e.g. quote car
@@ -132,7 +149,7 @@
         (lambda (throw) ,body-exp)))))
 
 (define scheme-syntactic-environment (extend-syntactic-environment* core-syntactic-environment
-  `((push! . ,push-expander)
+  `(;;(push! . ,push-expander)
     (or . ,or-expander)
     (catch . ,catch-expander))))
 
