@@ -9,9 +9,20 @@
   (nil null?)
   (quote `(quote ,apple?))
   (let `(let ((,symbol? ,apple?) ...) ,apple?))
+  (if `(if ,apple? ,apple? ,apple?))
+  (and `(and ,apple? ,apple?))
+  (or `(or ,apple? ,apple?))
   (app `(,apple? ,apple? ...)))
 
-(define builtins `((cons . ,cons)
+(define builtins `((error . ,error)
+                   
+                   (eq? . ,eq?)
+                   (symbol? . ,symbol?)
+                   
+                   (cons . ,cons)
+                   (null? . ,null?)
+                   (pair? . ,pair?)
+                   
                    (car . ,car)
                    (cdr . ,cdr)
                    
@@ -40,6 +51,14 @@
                                       bindings)
                                  env)
                          body)))
+    (if => (lambda (cond then else)
+             (if (interpret env cond)
+                 (interpret env then)
+                 (interpret env else))))
+    (and => (lambda (p q)
+              (and (interpret env p) (interpret env q))))
+    (or => (lambda (p q)
+             (or (interpret env p) (interpret env q))))
     (app => (lambda (t ts)
               (let ((func (interpret env t))
                     (args (map (lambda (arg) (interpret env (car arg))) ts)))
