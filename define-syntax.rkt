@@ -18,18 +18,17 @@
 
 (define (apply-list-to f) (lambda (l) (apply f l)))
 (define (define-syntax-expander syntactic-env exp)
-  (cond ((pattern? `(define-syntax ,symbol? (lambda (,symbol? ,symbol?) _)) exp)
+  (cond ((pattern? `(define-syntax ,symbol? ,apple?) exp)
          => (apply-list-to
-             (lambda (macro-name syntactic-env-name exp-name body)
-               (let ((macro (cons macro-name (lambda (syntactic-env-value exp-value)
-                                               (interpret (append `((,syntactic-env-name . ,syntactic-env-value)
-                                                                    (,exp-name . ,exp-value))
-                                                                  macro-expansion-builtins)
-                                                          body)))))
+             (lambda (macro-name macro-expander)
+               (let* ((expanded-expander (compile*** syntactic-env macro-expander))
+                      (macro (cons macro-name (lambda (syntactic-env exp)
+                                                (interpret macro-expansion-builtins
+                                                           `(,expanded-expander ,syntactic-env ',exp))))))
                  (set! *macros* (cons macro *macros*)))
                (make-syntactic-closure scheme-syntactic-environment '()
                                        `(begin)))))
-        (error (list "Malformed define-syntax" exp))))
+        (else (error (list "Malformed define-syntax" exp)))))
 
 (define scheme-macro-environment
   (extensible-syntactic-environment
@@ -65,10 +64,10 @@
                    (let ((obj-exp (make-syntactic-closure syntactic-env '() (cadr exp)))
                          (list-var (make-syntactic-closure syntactic-env '() (caddr exp))))
                      (make-syntactic-closure scheme-macro-environment '()
-                                             ;;`(set! ,list-var (cons ,obj-exp ,list-var))
-                                             (cons 'set! (cons list-var (cons (cons 'cons (cons obj-exp (cons list-var '()))) '())))
+                                             `(set! ,list-var (cons ,obj-exp ,list-var))
+                                             ;;(cons 'set! (cons list-var (cons (cons 'cons (cons obj-exp (cons list-var '()))) '())))
                                              ))))
                
-               (push! x y)
+               (push! e f)
                (define foo `(foo ,bar (push! baz bar) ,(push! baz bar) ,quux))
                (lambda (push!) (push! x y))))
