@@ -34,7 +34,3 @@
               (let ((func (interpret env t))
                     (args (map (lambda (arg) (interpret env (car arg))) ts)))
                 (apply func args))))))
-
-; (interpret '(cons 'x 'y)) '(x . y)
-; (interpret '(car (cons 'x 'y))) 'x
-; (interpret builtins '(let ((x 'apple) (y 'orange)) (cons x y))) '(apple . orange)

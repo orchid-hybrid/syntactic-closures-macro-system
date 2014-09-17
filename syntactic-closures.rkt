@@ -1,3 +1,5 @@
+#lang racket
+
 ;;  Alan Bawden and Jonathan Rees - Syntactic closures.
 
 ;; A /name/ is any token used to name something. e.g. quote car
@@ -10,25 +12,35 @@
 ;; A /value environment/ maps variables to values (more precisely locations that hold the values). All the information
 ;;   necessary to execute an expression
 
-(define (make-syntactic-closure syntactic-env free-names exp)
-  ;; returns a closure of the expression in the environment leaving the names free
-  (vector 'syntactic-closure
-          (lambda (free-names-syntactic-env)
-            (compile*** (filter-syntactic-env free-names free-names-syntactic-env syntactic-env) exp))))
 
-(define (syntactic-closure? x)
-  (and (vector? x) (= 2 (vector-length x)) (eq? 'syntactic-closure (vector-ref x 0))))
-
-(define (make-syntactic-closure-list syntactic-env free-names exps)
-  (map (lambda (exp) (make-syntactic-closure syntactic-env free-names exp)) exps))
-
-(define (compile-syntactic-closure syntactic-env syntactic-closure)
-  ((vector-ref syntactic-closure 1) syntactic-env))
-
-;;
+;; compile*** macroexpands an expression in the given environment
 
 (define (compile*** syntactic-env exp) (syntactic-env syntactic-env exp))
 (define (compile***-list syntactic-env exps) (map (lambda (exp) (syntactic-env syntactic-env exp)) exps))
+
+
+;; Syntactic Environments
+
+(define (null-syntactic-environment syntactic-env exp)
+  (if (syntactic-closure? exp)
+      (compile-syntactic-closure syntactic-env exp)
+      (error (list "Unclosed expression:" exp))))
+
+(define (extend-syntactic-environment outer-syntactic-env keyword expander)
+  ;; creates a new syntactic environment in which expressions (keyword ...) are expanded by the given expander
+  ;; any other expression is interpreted using the previous environment
+  (lambda (syntactic-env exp)
+    (if (and (pair? exp) (eq? (car exp) keyword))
+        (compile*** null-syntactic-environment (expander syntactic-env exp))
+        (outer-syntactic-env syntactic-env exp))))
+
+(define (extend-syntactic-environment* outer-syntactic-env keyword-expander-list)
+  (lambda (syntactic-env exp)
+    (cond ((and (pair? exp) (assq (car exp) keyword-expander-list))
+           => (lambda (key-exp)
+                (let ((expander (cdr key-exp)))
+                  (compile*** null-syntactic-environment (expander syntactic-env exp)))))
+          (else (outer-syntactic-env syntactic-env exp)))))
 
 (define (add-identifier outer-syntactic-env identifier)
   (let ((variable (gensym identifier)))
@@ -38,6 +50,7 @@
           (if (and (pair? exp) (eq? (car exp) identifier)) ;; NOTE: Added this, it was missing from the paper.. weird?
               (cons variable (map (lambda (e) (outer-syntactic-env syntactic-env e)) (cdr exp))) ;; NOTE
               (outer-syntactic-env syntactic-env exp))))))
+
 (define (add-identifier-list syntactic-env identifiers)
   (if (null? identifiers)
       syntactic-env
@@ -54,10 +67,30 @@
          else-syntactic-env)
      syntactic-env exp)))
 
-(define (null-syntactic-environment syntactic-env exp)
-  (if (syntactic-closure? exp)
-      (compile-syntactic-closure syntactic-env exp)
-      (error (list "Unclosed expression:" exp))))
+
+;; Syntactic Closures
+
+(define (syntactic-closure? x)
+  (and (vector? x) (= 2 (vector-length x)) (eq? 'syntactic-closure (vector-ref x 0))))
+
+(define (make-syntactic-closure syntactic-env free-names exp)
+  ;; returns a closure of the expression in the environment leaving the names free
+  (vector 'syntactic-closure
+          (lambda (free-names-syntactic-env)
+            (compile*** (filter-syntactic-env free-names free-names-syntactic-env syntactic-env) exp))))
+
+(define (make-syntactic-closure-list syntactic-env free-names exps)
+  (map (lambda (exp) (make-syntactic-closure syntactic-env free-names exp)) exps))
+
+(define (compile-syntactic-closure syntactic-env syntactic-closure)
+  ((vector-ref syntactic-closure 1) syntactic-env))
+
+
+;; Core syntactic environment.
+;; 
+;; Mostly an example, teaching how to use the system. Note that you only need
+;; one 'core' syntactic environment that uses compile***, then extend it with
+;; like how scheme-syntactic-environment is.
 
 (define (core-syntactic-environment syntactic-env exp)
   ((cond ((syntactic-closure? exp) compile-syntactic-closure)
@@ -77,28 +110,7 @@
   (let ((syntactic-env (add-identifier-list syntactic-env (cadr exp))))
     `(lambda ,(compile***-list syntactic-env (cadr exp)) . ,(compile***-list syntactic-env (cddr exp)))))
 
-;;
-
-(define (extend-syntactic-environment outer-syntactic-env keyword expander)
-  ;; creates a new syntactic environment in which expressions (keyword ...) are expanded by the given expander
-  ;; any other expression is interpreted 
-  (lambda (syntactic-env exp)
-    (if (and (pair? exp) (eq? (car exp) keyword))
-        (compile*** null-syntactic-environment (expander syntactic-env exp))
-        (outer-syntactic-env syntactic-env exp))))
-
-(define (extend-syntactic-environment* outer-syntactic-env keyword-expander-list)
-  (lambda (syntactic-env exp)
-    (cond ((and (pair? exp) (assq (car exp) keyword-expander-list))
-           => (lambda (key-exp)
-                (let ((expander (cdr key-exp)))
-                  (compile*** null-syntactic-environment (expander syntactic-env exp)))))
-          (else (outer-syntactic-env syntactic-env exp)))))
-
-;(define scheme-syntactic-environment core-syntactic-environment)
-
-
-;; example
+;; Examples
 
 (define (push-expander syntactic-env exp)
   (let ((obj-exp (make-syntactic-closure syntactic-env '() (cadr exp)))
