@@ -24,6 +24,7 @@
                    (eq? . ,eq?)
                    (symbol? . ,symbol?)
                    
+                   (map . ,map)
                    (cons . ,cons)
                    (null? . ,null?)
                    (pair? . ,pair?)

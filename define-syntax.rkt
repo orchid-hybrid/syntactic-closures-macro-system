@@ -4,6 +4,8 @@
          "syntactic-closures.rkt"
          "interpreter.rkt")
 
+(provide scheme-macro-environment)
+
 (define *macros* '())
 
 (define (extensible-syntactic-environment outer-syntactic-env)
@@ -27,7 +29,7 @@
                                                            `(,expanded-expander ,syntactic-env ',exp))))))
                  (set! *macros* (cons macro *macros*)))
                (make-syntactic-closure scheme-syntactic-environment '()
-                                       `(begin)))))
+                                       `'()))))
         (else (error (list "Malformed define-syntax" exp)))))
 
 (define scheme-macro-environment
