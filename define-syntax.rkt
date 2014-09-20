@@ -4,7 +4,7 @@
          "syntactic-closures.rkt"
          "interpreter.rkt")
 
-(provide scheme-macro-environment)
+(provide scheme-macro-environment *macros*)
 
 (define *macros* '())
 
